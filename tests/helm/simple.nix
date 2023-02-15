@@ -36,7 +36,7 @@ with pkgs.dockerTools; let
     finalImageTag = "10";
   };
 in {
-  imports = [kubenix.modules.test kubenix.modules.helm kubenix.modules.k8s kubenix.modules.docker];
+  imports = with kubenix.modules; [test k8s docker helm];
 
   docker.images = {
     postgresql.image = postgresql;
@@ -83,7 +83,9 @@ in {
   kubernetes.helm.releases.app-psql = {
     namespace = "some-overridden-by-kubetest";
     chart = helm.fetch {
-      repo = "https://charts.bitnami.com/bitnami";
+      # Old versions not available in https://charts.bitnami.com/bitnami
+      # https://github.com/bitnami/charts/issues/10545#issuecomment-1144982531
+      repo = "https://raw.githubusercontent.com/bitnami/charts/eb5f9a9513d987b519f0ecd732e7031241c50328/bitnami";
       chart = "postgresql";
       version = "10.3.8";
       sha256 = "sha256-0hJ5pNIivpXeRal1DwJ2VSD3Yxtw2omOoIYGZKGtu9I=";

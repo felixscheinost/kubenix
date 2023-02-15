@@ -29,7 +29,7 @@
             # TODO: `importYaml` uses IFD which fails during `nix flake check` as it evaluates
             # for all systems, not only the current one: https://github.com/hall/kubenix/issues/12
             # ./k8s/imports.nix
-            #./helm/simple.nix
+            ./helm/simple.nix
             ./istio/bookinfo.nix
             ./submodules/simple.nix
             ./submodules/defaults.nix
