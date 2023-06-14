@@ -1,6 +1,11 @@
 # helm defines kubenix module with options for using helm charts
 # with kubenix
-{ config, lib, pkgs, helm, ... }:
+{ config
+, lib
+, pkgs
+, helm
+, ...
+}:
 with lib; let
   cfg = config.kubernetes.helm;
 
@@ -31,7 +36,10 @@ in
   options.kubernetes.helm = {
     releases = mkOption {
       description = "Attribute set of helm releases";
-      type = types.attrsOf (types.submodule ({ config, name, ... }: {
+      type = types.attrsOf (types.submodule ({ config
+                                             , name
+                                             , ...
+                                             }: {
         options = {
           name = mkOption {
             description = "Helm release name";
@@ -115,6 +123,12 @@ in
               (builtins.attrValues globalConfig.kubernetes.customTypes);
           };
 
+          overrideObject = mkOption {
+            description = "A function which is allows applying different overrides to every object in the Helm chart. Returning `null` omits the object from being imported.";
+            type = types.functionTo (types.nullOr types.attrs);
+            default = x: { };
+          };
+
           objects = mkOption {
             description = "Generated kubernetes objects";
             type = types.listOf types.attrs;
@@ -122,9 +136,11 @@ in
           };
         };
 
-        config.overrides = mkIf (config.overrideNamespace && config.namespace != null) [{
-          metadata.namespace = config.namespace;
-        }];
+        config.overrides = mkIf (config.overrideNamespace && config.namespace != null) [
+          {
+            metadata.namespace = config.namespace;
+          }
+        ];
 
         config.objects = importJSON (helm.chart2json {
           inherit (config) chart name namespace values kubeVersion includeCRDs noHooks apiVersions;
@@ -139,19 +155,25 @@ in
     _module.args.helm = import ../lib/helm { inherit pkgs; };
 
     kubernetes.api.resources = mkMerge (flatten (mapAttrsToList
-      (_: release: map
-        (object:
-          let
-            apiVersion = parseApiVersion object.apiVersion;
-            inherit (object.metadata) name;
-          in
-          {
-            "${apiVersion.group}"."${apiVersion.version}".${object.kind}."${name}" = mkMerge ([
-              object
-            ]
-            ++ release.overrides);
-          })
-        release.objects
+      (
+        _: release:
+          map
+            (object:
+              let
+                apiVersion = parseApiVersion object.apiVersion;
+                objectOverrides = release.overrideObject object;
+                inherit (object.metadata) name;
+              in
+              if objectOverrides == null
+              then { }
+              else {
+                "${apiVersion.group}"."${apiVersion.version}".${object.kind}."${name}" = mkMerge ([
+                  object
+                  objectOverrides
+                ]
+                ++ release.overrides);
+              })
+            release.objects
       )
       cfg.releases));
   };
