@@ -541,11 +541,18 @@ in
       )
       cfg.api.types);
 
-    kubernetes.generated = k8s.mkHashedList {
-      items = config.kubernetes.objects;
-      labels."kubenix/project-name" = config.kubenix.project;
-      labels."kubenix/k8s-version" = config.kubernetes.version;
-    };
+    kubernetes.generated =
+      let
+        failedAssertions = map (x: x.message) (filter (x: !x.assertion) config.assertions);
+        failureMessage = "\nFailed assertions:\n${concatStringsSep "\n" (map (x: "- ${x}") failedAssertions)}";
+      in
+      k8s.mkHashedList {
+        items =
+          if failedAssertions != [ ]
+          then throw failureMessage else config.kubernetes.objects;
+        labels."kubenix/project-name" = config.kubenix.project;
+        labels."kubenix/k8s-version" = config.kubernetes.version;
+      };
 
     kubernetes.result =
       pkgs.writeText "${config.kubenix.project}-generated.json" (builtins.toJSON cfg.generated);
