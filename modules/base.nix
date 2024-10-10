@@ -1,5 +1,7 @@
 { lib, ... }:
 with lib; {
+  imports = [ ./assertions.nix ];
+
   options = {
     kubenix.project = mkOption {
       description = "Name of the project";
