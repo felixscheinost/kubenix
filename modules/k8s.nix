@@ -583,9 +583,13 @@ in
             k8s.mkHashedList
           else
             k8s.mkList;
+        failedAssertions = map (x: x.message) (filter (x: !x.assertion) config.assertions);
+        failureMessage = "\nFailed assertions:\n${concatStringsSep "\n" (map (x: "- ${x}") failedAssertions)}";
       in
       mkList {
-        items = config.kubernetes.objects;
+        items =
+          if failedAssertions != [ ]
+          then throw failureMessage else config.kubernetes.objects;
         labels."kubenix/project-name" = config.kubenix.project;
         labels."kubenix/k8s-version" = config.kubernetes.version;
       };
